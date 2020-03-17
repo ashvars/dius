@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+	</head>
+	<body>
+		
+	</body>
+	<script>
+		
+		//object to represent one of the two players with their own name, points and games properties
+		function player(name) {
+			this.name = name;
+			this.points = 0;
+			this.games = 0;
+		}
+		player.prototype.setPoints = function(pts) {
+			this.points = pts;
+		}
+		player.prototype.getPoints = function() {
+			return this.points;
+		}
+		player.prototype.setGames = function(gms) {
+			this.games = gms;
+		}
+		player.prototype.getGames = function() {
+			return this.games;
+		}
+		
+		//object to represent players of the game, progress of the game, if it is tie break or not and also if its advantage or not
+		function game(players,type) {
+			this.players = players;
+			this.players[0].setPoints(0);
+			this.players[1].setPoints(0);
+			this.advantage = '';
+			this.type = type;
+			this.scores = [0,15,30,40];
+		}
+		//get status will return a status of what the status of the current game is
+		game.prototype.getStatus = function() {
+			var score1 = this.players[0].points;
+			var score2 = this.players[1].points;
+			
+			if(this.advantage.length) {
+				return "Advantage " + this.advantage;
+			} else if(score1 === 40 && score2 === 40) {
+				return "Deuce";
+			} else if(this.type === "TB") {
+				return score1 + "-" + score2 + " Tie-Break";
+			} else {
+				return score1 + "-" + score2;
+			}
+		}
+		//set status will update the score of the passed player and modify the status of game
+		game.prototype.setStatus = function(player) {
+			var p1, p2, done = false;
+			this.players.forEach(function(p) {
+				if(p.name === player) {
+					p1 = p;
+				} else {
+					p2 = p;
+				}
+			});
+			if(this.advantage.length) {
+				if(p1.name === this.advantage) {
+					p1.setGames(p1.getGames() + 1);
+					done = true;
+				} else {
+					this.advantage = '';
+				}
+			} else {
+				if(this.type === "normal") {
+					if(p1.getPoints() === 40) {
+						if(p2.getPoints() === 40) {
+							this.advantage = p1.name;
+						} else {
+							p1.setGames(p1.getGames() + 1);
+							done = true;
+						}
+					} else {
+						p1.setPoints(this.scores[this.scores.indexOf(p1.getPoints()) + 1]);
+					}
+				} else {
+					p1.setPoints(p1.getPoints() + 1);
+					if(Math.abs(p1.getPoints() - p2.getPoints()) > 1 && [6,7].indexOf(p1.getPoints()) > -1) {
+						p1.setGames(p1.getGames() + 1);
+						done = true;
+					}
+				}
+			}
+			return done;
+		}
+		
+		//object to represent the match with players in the match, current on going game and status of the match
+		function match(player1,player2) {
+			this.players = [];
+			this.players[0] = new player(player1);
+			this.players[1] = new player(player2);
+			this.game = new game(this.players,"normal");
+			this.won = '';
+		}
+		//called everytime the current game is over
+		match.prototype.newGame = function(type) {
+			this.game = new game(this.players,type);
+		}
+		//used to change the status of the players' points, state of game and also state of the match
+		match.prototype.pointWonBy = function(player) {
+			var game = this.game.setStatus(player);
+			if(game) {
+				var p1, p2, done = false, type = "normal";
+				this.players.forEach(function(p) {
+					if(p.name === player) {
+						p1 = p;
+					} else {
+						p2 = p;
+					}
+				});
+				if(Math.abs(p1.getGames() - p2.getGames()) > 1 && p1.getGames() > 5) {
+					done = true;
+				} else if(Math.abs(p1.getGames() - p2.getGames()) === 1 && p1.getGames() === 7) {
+					done = true;
+				} else if(Math.abs(p1.getGames() - p2.getGames()) === 0 && p1.getGames() === 6) {
+					type = "TB";
+				}
+				this.newGame(type);
+				if(done) {
+					this.won = p1.name;
+				}
+			}
+		}
+		//gives a descriptive message about the status of the match
+		match.prototype.score = function() {
+			if(this.won.length) {
+				return this.players[0].games + "-" + this.players[1].games + ", Winner is " + this.won;
+			}
+			return this.players[0].games + "-" + this.players[1].games + ", " + this.game.getStatus();
+		}
+	</script>
+</html>
